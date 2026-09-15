@@ -1,0 +1,11 @@
+import sqlite3
+conn = sqlite3.connect('jclip_v22.db')
+c = conn.cursor()
+c.execute("DELETE FROM ventas WHERE folio LIKE 'ORD-%'")
+c.execute("DELETE FROM ventas_items")
+c.execute("DELETE FROM kardex WHERE producto_nombre = 'Audífonos Bluetooth Pro'")
+c.execute("DELETE FROM turnos_caja WHERE notas = 'Apertura inicial'")
+c.execute("DELETE FROM bitacora WHERE detalles LIKE '%TEST-SKU-99%'")
+conn.commit()
+print("Cleaned test entries successfully.")
+conn.close()

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pantalla del Cliente - JCLIP POS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        :root {
+            --primary: #845EC2;
+            --primary-gradient: linear-gradient(135deg, #1A1670, #5C2A9D);
+            --bg-dark: #0b0517;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text-light: #F5F0FF;
+            --text-muted: #A38EC2;
+            --success: #10B981;
+            --warning: #F59E0B;
+        }
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: var(--bg-dark); 
+            color: var(--text-light); 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
+        .left-side { 
+            flex: 1.3; 
+            background: var(--primary-gradient); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 50px; 
+            text-align: center; 
+            position: relative;
+        }
+        .left-side::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .right-side { 
+            flex: 1; 
+            background: #11051F; 
+            padding: 35px; 
+            display: flex; 
+            flex-direction: column; 
+            border-left: 2px solid rgba(132, 94, 194, 0.3); 
+        }
+        .brand-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+        #logo-cliente { 
+            max-width: 260px; 
+            max-height: 260px; 
+            border-radius: 24px; 
+            margin-bottom: 25px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5); 
+            display: none;
+            object-fit: contain;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .default-icon {
+            font-size: 110px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 20px;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));
+        }
+        #welcome-msg { 
+            font-size: 44px; 
+            font-weight: 900; 
+            margin: 0 0 12px 0; 
+            letter-spacing: -1px;
+            text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        #sub-msg { 
+            font-size: 22px; 
+            color: var(--text-muted); 
+            margin: 0; 
+            font-weight: 600;
+        }
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid rgba(132, 94, 194, 0.4);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .cart-header h2 {
+            margin: 0;
+            font-size: 26px;
+            color: var(--text-light);
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .cart-items-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        .cart-items-container::-webkit-scrollbar { width: 6px; }
+        .cart-items-container::-webkit-scrollbar-thumb { background: rgba(132, 94, 194, 0.4); border-radius: 4px; }
+        .cart-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 14px; 
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 14px 18px; 
+            border: 1px solid rgba(255,255,255,0.06);
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .item-details { display: flex; flex-direction: column; gap: 4px; }
+        .item-name { font-weight: 700; color: var(--text-light); font-size: 18px; }
+        .item-qty { color: var(--text-muted); font-size: 14px; font-weight: 600; }
+        .item-price { font-weight: 900; color: var(--success); font-size: 20px; }
+        
+        .totals-section { 
+            margin-top: auto; 
+            border-top: 2px solid rgba(255,255,255,0.15); 
+            padding-top: 18px; 
+        }
+        .tot-row { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 18px; 
+            margin-bottom: 8px; 
+            color: var(--text-muted); 
+            font-weight: 600;
+        }
+        .tot-final { 
+            font-size: 42px; 
+            color: #fff; 
+            font-weight: 900; 
+            margin-top: 10px;
+            letter-spacing: -1px;
+        }
+        .tot-bs { 
+            font-size: 26px; 
+            color: var(--warning); 
+            font-weight: 800; 
+            text-align: right;
+            margin-top: 4px;
+        }
+        .empty-cart-msg {
+            text-align: center;
+            color: var(--text-muted);
+            margin-top: 60px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="left-side">
+        <div class="brand-box">
+            <img id="logo-cliente" src="" alt="Logo">
+            <i id="default-icon" class="ph-fill ph-storefront default-icon"></i>
+            <h1 id="welcome-msg">¡Bienvenido!</h1>
+            <p id="sub-msg">Su compra se mostrará aquí en tiempo real</p>
+        </div>
+    </div>
+    
+    <div class="right-side">
+        <div class="cart-header">
+            <h2><i class="ph-bold ph-receipt"></i> Su Pedido</h2>
+            <span id="items-badge" style="background: rgba(132,94,194,0.3); color: var(--text-light); padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700;">0 Artículos</span>
+        </div>
+        <div id="cart-container" class="cart-items-container">
+            <div class="empty-cart-msg">
+                <i class="ph-light ph-shopping-bag" style="font-size: 50px; display: block; margin-bottom: 10px; opacity: 0.6;"></i>
+                Esperando registro de productos...
+            </div>
+        </div>
+        <div class="totals-section">
+            <div class="tot-row"><span>Subtotal:</span> <span id="c-sub" style="color:var(--text-light);">$0.00</span></div>
+            <div class="tot-row"><span>IVA:</span> <span id="c-iva" style="color:var(--text-light);">$0.00</span></div>
+            <div class="tot-row tot-final"><span>TOTAL:</span> <span id="c-tot" style="color:#fff;">$0.00</span></div>
+            <div class="tot-bs" id="c-bs">Bs. 0.00</div>
+        </div>
+    </div>
+
+    <script>
+        // Cargar configuración de marca (Nombre, Logo, Colores)
+        fetch('/api/config').then(r => r.json()).then(d => { 
+            if(d.logo_url) { 
+                const logoImg = document.getElementById('logo-cliente');
+                logoImg.src = d.logo_url; 
+                logoImg.style.display = 'block'; 
+                document.getElementById('default-icon').style.display = 'none';
+            }
+            if(d.nombre_sistema) {
+                document.title = d.nombre_sistema + " - Pantalla de Cliente";
+            }
+            if(d.color) {
+                document.documentElement.style.setProperty('--primary', d.color);
+            }
+        }).catch(() => {});
+
+        // Escuchar el canal de comunicación POS en vivo
+        const posChannel = new BroadcastChannel('jclip_pos');
+        const cartContainer = document.getElementById('cart-container');
+        const itemsBadge = document.getElementById('items-badge');
+        
+        posChannel.onmessage = (event) => {
+            const data = event.data;
+            if(!data) return;
+
+            if(data.action === 'update') {
+                const items = data.carrito || [];
+                const totalCount = items.reduce((acc, curr) => acc + (curr.cantidad || 1), 0);
+                itemsBadge.innerText = `${totalCount} Artículo${totalCount === 1 ? '' : 's'}`;
+
+                if(items.length > 0) {
+                    document.getElementById('welcome-msg').innerText = "Procesando su compra...";
+                    document.getElementById('sub-msg').innerText = "Verifique sus productos en pantalla";
+                    
+                    cartContainer.innerHTML = items.map(c => `
+                        <div class="cart-item">
+                            <div class="item-details">
+                                <div class="item-name">${escapeHTML(c.nombre)}</div>
+                                <div class="item-qty">${c.cantidad}x $${parseFloat(c.precio).toFixed(2)}</div>
+                            </div>
+                            <div class="item-price">$${(c.cantidad * c.precio).toFixed(2)}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    document.getElementById('welcome-msg').innerText = "¡Bienvenido!";
+                    document.getElementById('sub-msg').innerText = "Su compra se mostrará aquí en tiempo real";
+                    cartContainer.innerHTML = `
+                        <div class="empty-cart-msg">
+                            <i class="ph-light ph-shopping-bag" style="font-size: 50px; display: block; margin-bottom: 10px; opacity: 0.6;"></i>
+                            Esperando registro de productos...
+                        </div>`;
+                }
+                
+                document.getElementById('c-sub').innerText = data.subtotal || '$0.00';
+                document.getElementById('c-iva').innerText = data.iva || '$0.00';
+                document.getElementById('c-tot').innerText = data.total || '$0.00';
+                document.getElementById('c-bs').innerText = data.totalBs || 'Bs. 0.00';
+
+            } else if(data.action === 'clear') {
+                itemsBadge.innerText = `0 Artículos`;
+                cartContainer.innerHTML = `
+                    <div class="empty-cart-msg">
+                        <i class="ph-fill ph-check-circle" style="font-size: 50px; color: var(--success); display: block; margin-bottom: 10px;"></i>
+                        ¡Compra completada con éxito!
+                    </div>`;
+                document.getElementById('c-sub').innerText = '$0.00';
+                document.getElementById('c-iva').innerText = '$0.00';
+                document.getElementById('c-tot').innerText = '$0.00';
+                document.getElementById('c-bs').innerText = 'Bs. 0.00';
+                
+                document.getElementById('welcome-msg').innerText = "¡Muchas Gracias!";
+                document.getElementById('sub-msg').innerText = "Esperamos verle pronto de nuevo";
+
+                setTimeout(() => {
+                    document.getElementById('welcome-msg').innerText = "¡Bienvenido!";
+                    document.getElementById('sub-msg').innerText = "Su compra se mostrará aquí en tiempo real";
+                    cartContainer.innerHTML = `
+                        <div class="empty-cart-msg">
+                            <i class="ph-light ph-shopping-bag" style="font-size: 50px; display: block; margin-bottom: 10px; opacity: 0.6;"></i>
+                            Esperando registro de productos...
+                        </div>`;
+                }, 6000);
+            }
+        };
+
+        function escapeHTML(str) {
+            if(!str) return '';
+            return String(str).replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
+        }
+    </script>
+</body>
+</html>

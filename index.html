@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>JCLIP - ERP Enterprise</title>
+    <meta name="theme-color" content="#000000">
+    <link id="favicon" rel="icon" type="image/png" href="icono.png">
+    
+    <!-- FUENTES DE GOOGLE DINAMICAS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;600;800;900&family=Space+Grotesk:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="modal-bienvenida" class="modal-overlay" style="display: flex; background: var(--bg-app); z-index: 99999;">
+        <div class="modal-content ios-splash" style="box-shadow: none; border: none; width: 100%;">
+            <div style="font-size: 80px; color: var(--primary); margin-bottom: 10px; width: 120px; height: 120px; display:flex; justify-content:center; align-items:center;">
+                <img id="brand-logo" src="" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; display: none;">
+                <i class="ph-fill ph-storefront" style="display: block;"></i>
+            </div>
+            <h2 id="splash-nombre-sistema" style="margin: 0 0 5px 0; font-size: 34px; font-weight: 900; letter-spacing: -1px; color: var(--text-dark);">JCLIP</h2>
+            <p style="color: var(--text-muted); margin-bottom: 30px; font-size: 15px; font-weight: 500;">Sistema ERP, POS & Omnicanal Pro</p>
+            
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px; font-weight: 600;">Credenciales de Acceso</p>
+            <input type="text" id="input-usuario-login" placeholder="Usuario" class="ios-pin-input" style="letter-spacing: normal;">
+            <input type="password" id="input-pin-login" placeholder="PIN Secreto" class="ios-pin-input" style="letter-spacing: 10px;" onkeyup="if(event.key === 'Enter') App.auth.login()">
+            
+            <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; margin: 0 auto;">
+                <button class="btn-primary-solid" style="width: 100%;" onclick="App.auth.login()">Iniciar Sesión <i class="ph-bold ph-sign-in"></i></button>
+                <button class="btn-outline-blue" style="width: 100%; border-color: var(--primary); color: var(--primary);" onclick="App.auth.visitante()"><i class="ph-bold ph-shopping-bag"></i> Catálogo Público</button>
+            </div>
+            <div id="login-error" style="color: var(--danger); font-size: 14px; font-weight: bold; margin-top: 15px; display: none;"></div>
+            <div class="theme-switch-wrapper">
+                <span>Modo Clásico</span><label class="switch"><input type="checkbox" id="theme-toggle" onchange="App.ui.toggleTheme(this)"><span class="slider"></span></label><span>Liquid Glass</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EFECTO LIGHTBOX ZOOM -->
+    <div id="lightbox-modal" class="lightbox-overlay" onclick="App.ui.closeLightbox()">
+        <span class="lightbox-close">&times;</span>
+        <img id="lightbox-img" class="lightbox-content" src="">
+    </div>
+
+    <div id="toast-container"></div>
+
+    <header class="app-header">
+        <div class="header-left">
+            <img src="icono.png" class="user-avatar-header" id="header-avatar" onerror="this.src='https://ui-avatars.com/api/?name=User&background=8064F9&color=fff'">
+            <div style="display:flex; flex-direction:column; margin-left:10px;">
+                <h1 class="logo-text" style="margin:0;"><span id="display-nombre-sistema" style="font-size:16px; font-weight:900; color:inherit;">JCLIP</span> <span>PRO</span></h1>
+                <span id="header-user-name" style="font-size:11px; color:var(--text-muted); font-weight:700; display:none;">Admin</span>
+            </div>
+        </div>
+        <div class="header-right" style="display:flex; align-items:center; gap:8px;">
+            <!-- Botón Pedidos Kanban Rápido -->
+            <button class="tasa-badge admin-only" onclick="App.pedidos.load(); document.getElementById('modal-kanban').style.display='flex';" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; border:none; background: rgba(59, 130, 246, 0.15); color: var(--info);" title="Tablero de Pedidos Remotos & Delivery">
+                <i class="ph-bold ph-kanban" style="font-size:16px;"></i> 
+                <span style="font-size:11px; font-weight:bold;">Pedidos</span>
+                <span id="badge-pedidos-pendientes" style="background:var(--danger); color:#fff; border-radius:10px; font-size:10px; padding:2px 6px; font-weight:900; display:none;">0</span>
+            </button>
+
+            <!-- Botón 2da Pantalla Cliente -->
+            <button class="tasa-badge admin-only" onclick="window.open('/cliente', '_blank')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; border:none;" title="Abrir Pantalla del Cliente en Segunda Pestaña/Monitor">
+                <i class="ph-bold ph-television" style="color:var(--primary); font-size:16px;"></i> 
+                <span style="font-size:11px; font-weight:bold;">2da Pantalla</span>
+            </button>
+
+            <!-- Botón Tutor & Academia -->
+            <button class="tasa-badge admin-only" onclick="App.tutor.abrirAcademia()" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; border:none; background: rgba(132, 94, 194, 0.2); color: var(--primary);" title="Academia de Tutorías y Asistente Virtual">
+                <i class="ph-bold ph-graduation-cap" style="font-size:16px;"></i> 
+                <span style="font-size:11px; font-weight:bold;">Academia</span>
+            </button>
+
+            <!-- Tasa Visible a todos, click protegido y Botón One-Click BCV -->
+            <div class="tasa-badge" onclick="App.config.clickTasaHeader()">
+                <i class="ph-bold ph-arrows-left-right" style="color:var(--warning);"></i> 
+                <span id="header-tasa-display">Tasa: $1.00</span>
+                <button class="super-admin-only" onclick="event.stopPropagation(); App.config.syncBCV()" style="background:transparent; border:none; color:var(--primary); cursor:pointer; font-size:18px; margin-left:5px; padding:0;" title="Actualizar Tasa BCV Oficial"><i class="ph-bold ph-arrows-clockwise"></i></button>
+            </div>
+            
+            <i class="ph-bold ph-sign-out" style="font-size:24px; color:var(--text-muted); cursor:pointer;" onclick="App.auth.logout()" title="Cerrar Sesión"></i>
+        </div>
+    </header>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active admin-only" onclick="switchTab('inicio')" id="nav-tab-inicio"><i class="ph-fill ph-squares-four nav-icon"></i><span>Panel</span></div>
+        <div class="nav-item" onclick="switchTab('inventario')" id="nav-tab-inv"><i class="ph-bold ph-package nav-icon"></i><span>Inventario</span></div>
+        <div class="nav-item admin-only" onclick="App.pedidos.load(); document.getElementById('modal-kanban').style.display='flex';" id="nav-tab-kanban"><i class="ph-bold ph-kanban nav-icon"></i><span>Pedidos</span></div>
+        <div class="nav-item admin-only" onclick="abrirCajaFacturacion()" id="nav-tab-caja"><i class="ph-bold ph-receipt nav-icon"></i><span>Facturación</span></div>
+    </nav>
+
+    <main class="main-workspace">
+        <section id="view-inicio" class="view-section active admin-only">
+            <!-- TARJETA TURNO MASTER -->
+            <div class="card-turno-master">
+                <div class="turno-header">
+                    <div>
+                        <h3>Turno de Caja</h3>
+                        <p id="txt-tiempo-turno" style="margin:2px 0 0 0; font-size:12px; color:var(--text-muted);">Sin turno abierto</p>
+                    </div>
+                    <span id="badge-turno-status" class="badge-open" style="background:var(--danger-bg); color:var(--danger);">CERRADO</span>
+                </div>
+                <div class="total-caja-container">
+                    <span>Total Estimado en Caja</span>
+                    <div class="main-amount" id="dash-caja-real">$0.00</div>
+                </div>
+                <div class="turno-stats">
+                    <div class="stat-item"><span>Fondo Inicial</span><strong id="dash-fondo">$0.00</strong></div>
+                    <div class="stat-item"><span>Ventas Turno</span><strong class="text-success" id="dash-ventas-hoy">$0.00</strong></div>
+                    <div class="stat-item"><span>Egresos / Gastos</span><strong class="text-danger" id="dash-gastos-hoy">-$0.00</strong></div>
+                    <div class="stat-item"><span>Neto en Turno</span><strong class="text-primary" id="dash-ganancias">$0.00</strong></div>
+                </div>
+                <div class="turno-actions">
+                    <button onclick="App.turnos.abrirModalApertura()" id="btn-turno-toggle" class="btn-primary-solid" style="flex:1;"><i class="ph-bold ph-door-open"></i> Abrir Turno</button>
+                    <button onclick="document.getElementById('modal-gasto').style.display='flex';" class="btn-egresar"><i class="ph-bold ph-money"></i> Egresar</button>
+                    <button onclick="App.turnos.abrirModalCierre()" class="btn-arqueo"><i class="ph-fill ph-vault"></i> Cierre y Cuadre</button>
+                </div>
+            </div>
+
+            <h3 class="title-md">Módulos del Sistema</h3>
+            <div class="grid-menu-apps">
+                <div class="app-icon-box" onclick="App.pedidos.load(); document.getElementById('modal-kanban').style.display='flex';"><div class="icon-circle ic-color" style="background:rgba(59,130,246,0.15); color:var(--info);"><i class="ph-fill ph-kanban"></i></div><span>Pedidos Omnicanal</span></div>
+                <div class="app-icon-box" onclick="App.caja.loadHistorial(); document.getElementById('modal-caja').style.display='flex';"><div class="icon-circle ic-color"><i class="ph-fill ph-receipt"></i></div><span>Facturas</span></div>
+                <div class="app-icon-box admin-only" onclick="App.stats.load(); document.getElementById('modal-estadisticas').style.display='flex';"><div class="icon-circle ic-color"><i class="ph-fill ph-chart-bar"></i></div><span>Métricas & Margen</span></div>
+                <div class="app-icon-box" onclick="App.creditos.load(); document.getElementById('modal-creditos').style.display='flex';"><div class="icon-circle ic-color"><i class="ph-fill ph-credit-card"></i></div><span>Fiados & Cuotas</span></div>
+                <div class="app-icon-box admin-only" onclick="App.kardex.load();"><div class="icon-circle ic-color" style="background:rgba(16,185,129,0.15); color:var(--success);"><i class="ph-fill ph-clock-counter-clockwise"></i></div><span>Kardex Trazable</span></div>
+                <div class="app-icon-box admin-only" onclick="App.mermas.abrirModal();"><div class="icon-circle ic-color" style="background:rgba(239,68,68,0.15); color:var(--danger);"><i class="ph-fill ph-trash-simple"></i></div><span>Mermas / Bajas</span></div>
+                <div class="app-icon-box admin-only" onclick="App.crm.load(); document.getElementById('modal-clientes').style.display='flex';"><div class="icon-circle ic-color"><i class="ph-fill ph-handshake"></i></div><span>CRM 360</span></div>
+                <div class="app-icon-box admin-only" onclick="App.usuarios.load(); document.getElementById('modal-usuarios').style.display='flex';"><div class="icon-circle ic-color"><i class="ph-fill ph-users"></i></div><span>Personal</span></div>
+                <div class="app-icon-box admin-only" onclick="document.getElementById('modal-marketing').style.display='flex';"><div class="icon-circle ic-color"><i class="ph-fill ph-megaphone"></i></div><span>Marketing WA</span></div>
+                <div class="app-icon-box admin-only" onclick="document.getElementById('modal-alertas').style.display='flex';"><div class="icon-circle ic-color"><i class="ph-fill ph-warning-circle"></i></div><span>Alertas</span></div>
+                <div class="app-icon-box admin-only" onclick="document.getElementById('modal-devolucion').style.display='flex';"><div class="icon-circle ic-color"><i class="ph-fill ph-arrow-u-up-left"></i></div><span>Devolución</span></div>
+                <div class="app-icon-box admin-only" onclick="App.bitacora.load();"><div class="icon-circle ic-color"><i class="ph-fill ph-notebook"></i></div><span>Bitácora</span></div>
+            </div>
+        </section>
+
+        <section id="view-inventario" class="view-section">
+            <div class="search-bar">
+                <i class="ph-bold ph-magnifying-glass"></i>
+                <input type="text" id="buscador" placeholder="Buscar producto, SKU, categoría o escanear pistola USB..." onkeyup="actualizarVista()">
+                <i class="ph-bold ph-camera" onclick="App.scanner.init()" style="font-size: 24px; cursor:pointer;" title="Escanear con Cámara"></i>
+            </div>
+            <div class="action-buttons-top admin-flex">
+                <button class="btn-primary-solid" onclick="App.inv.abrirModalNuevo()"><i class="ph-bold ph-plus"></i> Nuevo Artículo / Combo</button>
+                <button class="btn-outline-blue" onclick="App.proveedores.load(); document.getElementById('modal-proveedores').style.display='flex';"><i class="ph-bold ph-truck"></i> Proveedores</button>
+            </div>
+            <div id="category-pills" class="category-pills-container"></div>
+            
+            <!-- CARRUSEL VITRINA DESTACADOS -->
+            <div id="carrusel-wrapper" style="display:none; margin-bottom: 25px;">
+                <h3 class="title-md" style="margin-bottom: 15px; display: flex; align-items: center; gap: 8px;"><i class="ph-fill ph-star" style="color: gold; font-size: 22px;"></i> Productos Destacados</h3>
+                <div id="carrusel-productos" class="carrusel-container"></div>
+            </div>
+
+            <h3 class="title-md" style="margin-bottom: 15px; color: var(--text-muted); font-size: 15px;">Todos los productos</h3>
+            <div id="lista-productos" class="product-grid"></div>
+        </section>
+    </main>
+
+    <!-- ================= PANTALLA DE FACTURACIÓN POS (Caja) ================= -->
+    <div id="modal-caja-flotante" class="modal-overlay" style="align-items: flex-end;">
+        <div class="modal-content-full" style="background:var(--bg-app);">
+            
+            <!-- Buscador y Ficha de Cliente -->
+            <div class="client-search-box">
+                <div class="client-header"><span><i class="ph-bold ph-user"></i> Datos del Cliente (Obligatorio)</span></div>
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <select id="input-cliente-tipo" class="input-glass" style="width:70px; padding:12px;"><option>V-</option><option>J-</option><option>E-</option></select>
+                    <input type="text" id="input-cliente-cedula" placeholder="Cédula / RIF o '0' para Ventas Rápidas" class="input-glass" style="flex:1;" onkeyup="if(event.key === 'Enter') App.crm.buscarYAsignar()">
+                </div>
+                <input type="text" id="input-cliente-nombre" placeholder="Nombre completo" class="input-glass">
+                <div id="cliente-scoring-badge" style="margin-top:8px; display:none;"></div>
+                <button class="btn-outline-blue" style="width:100%; margin-top:10px;" onclick="App.crm.buscarYAsignar()"><i class="ph-bold ph-magnifying-glass"></i> Vincular / Buscar Cliente</button>
+            </div>
+
+            <!-- Alerta de Puntos y Canje -->
+            <div id="alerta-puntos" style="display:none; background:var(--warning-bg); color:var(--warning); padding:10px; border-radius:var(--radius-md); font-size:13px; font-weight:700; margin-bottom:15px; justify-content:space-between; align-items:center;">
+                <span id="txt-puntos">Tiene 0 Puntos</span>
+                <button onclick="App.crm.canjear()" style="background:var(--warning); color:#fff; border:none; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:bold;">Canjear</button>
+            </div>
+
+            <!-- MODALIDAD DE ENTREGA / DELIVERY -->
+            <div style="background:var(--card-bg); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:12px; font-weight:700; color:var(--text-muted);"><i class="ph-bold ph-moped"></i> Modalidad de Entrega</span>
+                    <select id="pos-tipo-entrega" class="input-glass" style="width:160px; margin:0; padding:6px 10px; font-size:12px;" onchange="App.pos.toggleDeliveryFields()">
+                        <option value="MOSTRADOR">Presencial (Mostrador)</option>
+                        <option value="DELIVERY">Envío (Delivery)</option>
+                    </select>
+                </div>
+                <div id="pos-delivery-extra" style="display:none; gap:10px; margin-top:8px;">
+                    <div style="flex:1;">
+                        <label style="font-size:10px; color:var(--text-muted); display:block;">Tarifa Envío ($)</label>
+                        <input type="number" step="0.5" id="pos-costo-envio" value="0.00" class="input-glass" style="margin:0; padding:6px;" onkeyup="App.pos.calcTotal()">
+                    </div>
+                    <div style="flex:1.5;">
+                        <label style="font-size:10px; color:var(--text-muted); display:block;">Repartidor / Motorizado</label>
+                        <input type="text" id="pos-motorizado" placeholder="Nombre Repartidor" class="input-glass" style="margin:0; padding:6px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ítems del Carrito -->
+            <div id="invoice-items-admin" style="margin-bottom: 20px;"></div>
+            
+            <!-- Resumen de Totales -->
+            <div style="padding: 15px 0; border-bottom: 1px solid var(--border-color); margin-bottom: 15px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px; color:var(--text-muted);"><span>Subtotal Productos</span><span id="ta-subtotal-val">$0.00</span></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px; color:var(--warning);"><span>Descuento <input type="number" id="input-desc" value="0" style="width:40px; text-align:center; background:transparent; border:1px solid var(--border-color); color:var(--text-dark); border-radius:4px;" onkeyup="App.pos.calcTotal()">%</span><span id="ta-desc">-$0.00</span></div>
+                <div id="row-puntos" style="display:none; justify-content:space-between; margin-bottom:8px; font-size:14px; color:var(--success);"><span>Puntos Canjeados</span><span id="ta-puntos">-$0.00</span></div>
+                <div id="row-delivery" style="display:none; justify-content:space-between; margin-bottom:8px; font-size:14px; color:var(--info);"><span>Costo Delivery</span><span id="ta-delivery">$0.00</span></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px; color:var(--text-muted);"><span>IVA <input type="number" id="input-iva" value="16" style="width:40px; text-align:center; background:transparent; border:1px solid var(--border-color); color:var(--text-dark); border-radius:4px;" onkeyup="App.pos.calcTotal()">%</span><span id="ta-iva">$0.00</span></div>
+            </div>
+
+            <!-- Tarjeta Total Destacada -->
+            <div class="total-pay-card">
+                <span>TOTAL A PAGAR</span>
+                <h2 id="ta-final">$0.00</h2>
+                <p id="ta-bs">Bs. 0.00</p>
+            </div>
+
+            <!-- Métodos de Pago -->
+            <h3 class="title-md" style="font-size:15px; color:var(--text-muted); text-transform:uppercase;">Método de Pago</h3>
+            <div class="methods-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="method-btn active" onclick="seleccionarMetodoUnico('Efectivo ($)', this)"><i class="ph-bold ph-money"></i><span>Efec ($)</span></div>
+                <div class="method-btn" onclick="seleccionarMetodoUnico('Efectivo (Bs)', this)"><i class="ph-bold ph-wallet"></i><span>Efec (Bs)</span></div>
+                <div class="method-btn" onclick="seleccionarMetodoUnico('Pago Móvil (Bs)', this)"><i class="ph-bold ph-device-mobile"></i><span>P. Móvil</span></div>
+                <div class="method-btn" onclick="seleccionarMetodoUnico('Binance', this)"><i class="ph-bold ph-currency-btc"></i><span>Binance</span></div>
+                <div class="method-btn" onclick="activarPagoMixto(this)"><i class="ph-bold ph-columns"></i><span>Mixto</span></div>
+                <div class="method-btn" onclick="seleccionarMetodoUnico('Crédito', this)"><i class="ph-bold ph-handshake"></i><span>Crédito</span></div>
+            </div>
+            <input type="hidden" id="input-metodo-seleccionado" value="Efectivo ($)">
+
+            <!-- ÁREA FINANCIAMIENTO / CRÉDITO PRO -->
+            <div id="area-credito-config" style="display:none; background:var(--card-bg); padding:15px; border-radius:var(--radius-md); border:1px solid var(--primary); margin-bottom:15px;">
+                <h4 style="margin:0 0 10px 0; font-size:13px; color:var(--primary); display:flex; align-items:center; gap:6px;"><i class="ph-bold ph-calculator"></i> Plan de Financiamiento en Cuotas</h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <div>
+                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">% Pago Inicial</label>
+                        <input type="number" id="cred-porc-inicial" value="30" min="0" max="90" class="input-glass" style="margin:0;" onkeyup="App.pos.calcCreditoPreview()">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">N° de Cuotas</label>
+                        <select id="cred-num-cuotas" class="input-glass" style="margin:0;" onchange="App.pos.calcCreditoPreview()">
+                            <option value="1">1 Cuota</option>
+                            <option value="2">2 Cuotas</option>
+                            <option value="3" selected>3 Cuotas</option>
+                            <option value="4">4 Cuotas</option>
+                            <option value="6">6 Cuotas</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Frecuencia de Pago</label>
+                    <select id="cred-frecuencia" class="input-glass" style="margin:0;" onchange="App.pos.calcCreditoPreview()">
+                        <option value="SEMANAL">Semanal (cada 7 días)</option>
+                        <option value="QUINCENAL" selected>Quincenal (cada 15 días)</option>
+                        <option value="MENSUAL">Mensual (cada 30 días)</option>
+                    </select>
+                </div>
+                <div id="cred-preview-box" style="background:rgba(128,128,128,0.1); padding:10px; border-radius:8px; font-size:12px; color:var(--text-dark);">
+                    <div>Inicial Hoy: <strong id="cred-prev-inicial" style="color:var(--success);">$0.00</strong></div>
+                    <div>Saldo Restante: <strong id="cred-prev-saldo" style="color:var(--warning);">$0.00</strong></div>
+                    <div id="cred-prev-cuotas-txt" style="margin-top:4px; font-weight:bold; color:var(--primary);">3 cuotas de $0.00</div>
+                </div>
+            </div>
+
+            <!-- ÁREA PAGO MIXTO -->
+            <div id="area-mixto" style="display:none; background:var(--card-bg); padding:15px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:15px;">
+                <div id="mixto-rows-container"></div>
+                <button class="btn-outline-blue" style="width:100%; padding:8px; font-size:12px; margin-top:10px; border-style:dashed;" onclick="App.pos.addMixtoRow()"><i class="ph-bold ph-plus"></i> Añadir Otro Método</button>
+                <div id="info-restante-mixto" style="text-align:center; margin-top:15px; font-weight:bold; color:var(--danger); font-size:14px;"></div>
+            </div>
+
+            <!-- COMPROBANTE DIGITAL -->
+            <div class="upload-zone" onclick="document.getElementById('file_comprobante').click()">
+                <i class="ph-fill ph-camera" style="font-size: 24px; color: var(--primary);"></i>
+                <p style="font-size: 12px; margin-top: 5px; font-weight: 700; color: var(--text-dark);">Foto Comprobante Digital (Opcional)</p>
+                <img id="img-preview" src="#" style="max-height: 80px; border-radius: 8px; margin-top: 10px; display: none;">
+                <input type="text" id="ref_pago_digital" class="input-glass" placeholder="N° Referencia Bancaria / Transferencia" style="margin-top:10px;" onclick="event.stopPropagation()">
+                <input type="file" id="file_comprobante" style="display:none" accept="image/*" onchange="App.ui.previewImage(this, 'img-preview')">
+            </div>
+
+            <div class="checkout-actions" style="flex-direction: column;">
+                <div style="display:flex; gap:10px; width: 100%;">
+                    <button class="btn-outline-blue" style="flex:1; padding:10px; font-size:13px;" onclick="App.print.pdf()"><i class="ph-bold ph-file-pdf"></i> PDF</button>
+                    <button class="btn-outline-blue" style="flex:1; padding:10px; font-size:13px;" onclick="App.pos.generarQR()"><i class="ph-bold ph-qr-code"></i> QR</button>
+                    <button class="btn-outline-blue" style="flex:1; padding:10px; font-size:13px; color:var(--warning); border-color:var(--warning);" onclick="App.pos.pausar()"><i class="ph-bold ph-pause"></i> Pausar</button>
+                    <button class="btn-outline-blue" style="flex:1; padding:10px; font-size:13px;" onclick="App.pos.mostrarPausadas()"><i class="ph-bold ph-clock"></i> Cargar</button>
+                </div>
+                <div style="display:flex; gap:10px; width: 100%;">
+                    <button class="btn-close-checkout" onclick="App.pos.limpiarCaja()">Limpiar</button>
+                    <button class="btn-facturar" onclick="App.pos.cobrar(false)"><i class="ph-bold ph-receipt"></i> Facturar</button>
+                </div>
+            </div>
+            
+            <div id="ticket-area" style="display:none; background:#fff; color:#000; padding:15px; font-family:monospace; font-size:12px; width:300px;">
+                <h2 id="ticket-header-name" style="margin:0; text-align:center;">JCLIP</h2><div id="ticket-folio"></div><div id="ticket-fecha"></div><div id="ticket-payment-info"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TABLERO KANBAN DE PEDIDOS OMNICANAL & DELIVERY ================= -->
+    <div id="modal-kanban" class="modal-overlay" style="display:none; flex-direction:column; padding:0;">
+        <div style="background:var(--card-bg); backdrop-filter:blur(12px); padding:15px 20px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <i class="ph-bold ph-kanban" style="font-size:24px; color:var(--info);"></i>
+                <h2 style="margin:0; font-size:18px; font-weight:800; color:var(--text-dark);">Tablero Omnicanal & Delivery</h2>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-primary-solid" style="padding:8px 16px; font-size:13px;" onclick="App.pedidos.abrirFormNuevo()"><i class="ph-bold ph-plus"></i> Nuevo Pedido</button>
+                <button class="btn-close-sheet" onclick="document.getElementById('modal-kanban').style.display='none'"><i class="ph-bold ph-x"></i></button>
+            </div>
+        </div>
+
+        <div class="kanban-board-container" style="flex:1; overflow-x:auto; padding:20px; display:flex; gap:15px; align-items:flex-start;">
+            <!-- Columna 1: Pendiente -->
+            <div class="kanban-col">
+                <div class="kanban-col-header" style="border-top-color:var(--warning);">
+                    <span>🕒 Pendiente / Nuevo</span>
+                    <span class="kanban-count" id="count-pendiente">0</span>
+                </div>
+                <div class="kanban-cards-wrapper" id="col-PENDIENTE"></div>
+            </div>
+
+            <!-- Columna 2: Por Pagar / Validar -->
+            <div class="kanban-col">
+                <div class="kanban-col-header" style="border-top-color:var(--danger);">
+                    <span>💳 Por Pagar / Conciliar</span>
+                    <span class="kanban-count" id="count-por-pagar">0</span>
+                </div>
+                <div class="kanban-cards-wrapper" id="col-POR_PAGAR"></div>
+            </div>
+
+            <!-- Columna 3: En Preparación -->
+            <div class="kanban-col">
+                <div class="kanban-col-header" style="border-top-color:var(--primary);">
+                    <span>📦 En Preparación</span>
+                    <span class="kanban-count" id="count-preparacion">0</span>
+                </div>
+                <div class="kanban-cards-wrapper" id="col-PREPARACION"></div>
+            </div>
+
+            <!-- Columna 4: En Delivery -->
+            <div class="kanban-col">
+                <div class="kanban-col-header" style="border-top-color:var(--info);">
+                    <span>🛵 En Ruta (Delivery)</span>
+                    <span class="kanban-count" id="count-en-delivery">0</span>
+                </div>
+                <div class="kanban-cards-wrapper" id="col-EN_DELIVERY"></div>
+            </div>
+
+            <!-- Columna 5: Entregado / Facturado -->
+            <div class="kanban-col">
+                <div class="kanban-col-header" style="border-top-color:var(--success);">
+                    <span>✅ Entregado / Cerrado</span>
+                    <span class="kanban-count" id="count-entregado">0</span>
+                </div>
+                <div class="kanban-cards-wrapper" id="col-ENTREGADO"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= FORMULARIO PEDIDO REMOTO ================= -->
+    <div id="modal-pedido-form" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>Registrar Pedido Remoto</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-pedido-form').style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            <form onsubmit="App.pedidos.guardarForm(event)">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <div>
+                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Canal de Origen</label>
+                        <select id="ped-canal" class="input-glass" style="margin:0;">
+                            <option value="WhatsApp">💬 WhatsApp</option>
+                            <option value="Instagram">📸 Instagram</option>
+                            <option value="Web">🌐 Web / Teléfono</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Tipo de Entrega</label>
+                        <select id="ped-tipo-entrega" class="input-glass" style="margin:0;">
+                            <option value="DELIVERY">🛵 Delivery</option>
+                            <option value="PICKUP">🏬 Retiro en Tienda</option>
+                        </select>
+                    </div>
+                </div>
+
+                <input type="text" id="ped-cli-nombre" placeholder="Nombre del Cliente" required class="input-glass">
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <input type="text" id="ped-cli-cedula" placeholder="Cédula (Opcional)" class="input-glass" style="flex:1; margin:0;">
+                    <input type="text" id="ped-cli-telefono" placeholder="WhatsApp (Ej: 0414...)" required class="input-glass" style="flex:1; margin:0;">
+                </div>
+                <input type="text" id="ped-direccion" placeholder="Dirección de Envío / Punto de Referencia" class="input-glass">
+                
+                <!-- Selector de Productos para el Pedido -->
+                <div style="margin-bottom:12px; border:1px solid var(--border-color); padding:10px; border-radius:var(--radius-md); background:rgba(128,128,128,0.05);">
+                    <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">Agregar Productos al Pedido</label>
+                    <div style="display:flex; gap:6px;">
+                        <select id="ped-prod-select" class="input-glass" style="margin:0; flex:2;"></select>
+                        <input type="number" id="ped-prod-qty" value="1" min="1" class="input-glass" style="margin:0; flex:0.7;">
+                        <button type="button" class="btn-primary-solid" style="margin:0; padding:0 12px;" onclick="App.pedidos.addItemALista()"><i class="ph-bold ph-plus"></i></button>
+                    </div>
+                    <div id="ped-items-lista-ui" style="margin-top:10px; max-height:120px; overflow-y:auto; font-size:12px;"></div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <div>
+                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Tarifa Envío ($)</label>
+                        <input type="number" step="0.5" id="ped-costo-envio" value="0.00" class="input-glass" style="margin:0;" onkeyup="App.pedidos.recalcTotal()">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Repartidor Asignado</label>
+                        <input type="text" id="ped-motorizado" placeholder="Motorizado" class="input-glass" style="margin:0;">
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(128,128,128,0.1); padding:10px 15px; border-radius:8px; margin-bottom:12px;">
+                    <strong style="font-size:13px;">Total del Pedido:</strong>
+                    <strong id="ped-total-ui" style="font-size:18px; color:var(--primary);">$0.00</strong>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <select id="ped-metodo-pago" class="input-glass" style="margin:0;">
+                        <option value="Pago Móvil (Bs)">Pago Móvil (Bs)</option>
+                        <option value="Transferencia (Bs)">Transferencia (Bs)</option>
+                        <option value="Efectivo ($)">Efectivo ($)</option>
+                        <option value="Binance">Binance</option>
+                    </select>
+                    <input type="text" id="ped-ref-pago" placeholder="N° Referencia Pago" class="input-glass" style="margin:0;">
+                </div>
+
+                <div class="upload-zone" onclick="document.getElementById('ped-comprobante-file').click()" style="margin-bottom:12px; padding:10px;">
+                    <i class="ph-fill ph-camera" style="font-size:20px; color:var(--primary);"></i>
+                    <p style="font-size:11px; margin:4px 0 0 0; font-weight:700;">Subir Foto de Comprobante / Transferencia</p>
+                    <img id="ped-preview-img" src="#" style="max-height:70px; border-radius:8px; margin-top:8px; display:none;">
+                    <input type="file" id="ped-comprobante-file" style="display:none" accept="image/*" onchange="App.ui.previewImage(this, 'ped-preview-img')">
+                </div>
+
+                <textarea id="ped-notas" placeholder="Instrucciones o notas adicionales..." class="input-glass" rows="2" style="margin-bottom:12px;"></textarea>
+                <button type="submit" class="btn-primary-solid" style="width:100%;"><i class="ph-bold ph-check"></i> Guardar Pedido</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL KARDEX Y TRAZABILIDAD ================= -->
+    <div id="modal-kardex" class="modal-overlay" style="display:none; flex-direction:column; padding:0;">
+        <div style="background:var(--card-bg); backdrop-filter:blur(12px); padding:15px 20px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <i class="ph-bold ph-clock-counter-clockwise" style="font-size:24px; color:var(--success);"></i>
+                <h2 style="margin:0; font-size:18px; font-weight:800; color:var(--text-dark);">Kardex Integral de Inventario</h2>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-outline-blue" style="padding:8px 14px; font-size:12px;" onclick="App.kardex.exportarCSV()"><i class="ph-bold ph-file-csv"></i> Exportar CSV</button>
+                <button class="btn-close-sheet" onclick="document.getElementById('modal-kardex').style.display='none'"><i class="ph-bold ph-x"></i></button>
+            </div>
+        </div>
+        <div style="padding:15px 20px; background:rgba(128,128,128,0.05); border-bottom:1px solid var(--border-color); display:flex; gap:10px; align-items:center;">
+            <select id="kardex-filtro-prod" class="input-glass" style="margin:0; max-width:300px;" onchange="App.kardex.filtrarPorProducto(this.value)">
+                <option value="">Todos los productos</option>
+            </select>
+        </div>
+        <div style="flex:1; overflow-y:auto; padding:20px;">
+            <div id="kardex-table-container" style="overflow-x:auto;"></div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL MERMAS Y BAJAS ================= -->
+    <div id="modal-merma" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>Registrar Merma / Pérdida</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-merma').style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            <form onsubmit="App.mermas.guardarForm(event)">
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Seleccionar Producto</label>
+                <select id="merma-prod-id" class="input-glass" style="margin-bottom:12px;" required></select>
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Cantidad a dar de baja</label>
+                <input type="number" step="0.01" id="merma-cantidad" placeholder="0.00" required class="input-glass" style="margin-bottom:12px;">
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Motivo / Justificación</label>
+                <select id="merma-motivo" class="input-glass" style="margin-bottom:12px;">
+                    <option value="Vencimiento / Caducidad">Vencimiento / Caducidad</option>
+                    <option value="Deterioro / Roto / Averiado">Deterioro / Roto / Averiado</option>
+                    <option value="Robo / Extravío">Robo / Extravío</option>
+                    <option value="Consumo Interno">Consumo Interno</option>
+                    <option value="Ajuste de Auditoría">Ajuste de Auditoría</option>
+                </select>
+                <button type="submit" class="btn-primary-solid" style="width:100%; background:var(--danger);"><i class="ph-bold ph-trash-simple"></i> Descontar del Inventario</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL APERTURA DE TURNO ================= -->
+    <div id="modal-apertura" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>Apertura de Turno de Caja</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-apertura').style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            <form onsubmit="App.turnos.ejecutarApertura(event)">
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:15px;">Ingresa el monto de fondo inicial con el que inicias operaciones en caja.</p>
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Fondo Inicial en Divisas ($)</label>
+                <input type="number" step="0.01" id="apertura-usd" placeholder="0.00" required class="input-glass" style="margin-bottom:12px; font-size:18px; font-weight:bold;">
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Fondo Inicial en Bolívares (Bs)</label>
+                <input type="number" step="0.01" id="apertura-bs" placeholder="0.00" value="0.00" class="input-glass" style="margin-bottom:12px;">
+                <input type="text" id="apertura-notas" placeholder="Observaciones / Notas (Opcional)" class="input-glass" style="margin-bottom:15px;">
+                <button type="submit" class="btn-primary-solid" style="width:100%;"><i class="ph-bold ph-door-open"></i> Confirmar Apertura de Turno</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL CIERRE Y CUADRE COMPARATIVO ================= -->
+    <div id="modal-cierre-comparativo" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>Cierre y Cuadre de Turno</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-cierre-comparativo').style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            
+            <div style="background:rgba(128,128,128,0.1); padding:15px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px;"><span>Fondo Inicial:</span><strong id="cierre-prev-fondo">$0.00</strong></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px; color:var(--success);"><span>Ventas Totales:</span><strong id="cierre-prev-ventas">$0.00</strong></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:13px; color:var(--danger);"><span>Egresos / Gastos:</span><strong id="cierre-prev-gastos">-$0.00</strong></div>
+                <hr style="border-color:var(--border-color); margin:8px 0;">
+                <div style="display:flex; justify-content:space-between; font-size:15px; font-weight:800;"><span>Total Esperado en Caja:</span><span id="cierre-prev-esperado" style="color:var(--primary);">$0.00</span></div>
+            </div>
+
+            <form onsubmit="App.turnos.ejecutarCierreComparativo(event)">
+                <label style="font-size:12px; color:var(--text-dark); font-weight:bold; display:block; margin-bottom:6px;">Dinero Físico Contado ($ USD)</label>
+                <input type="number" step="0.01" id="cierre-contado-usd" placeholder="0.00" required class="input-glass" style="margin-bottom:12px; font-size:20px; font-weight:bold;" onkeyup="App.turnos.calcDiferencia()">
+                
+                <div id="cierre-diferencia-box" style="display:none; text-align:center; padding:10px; border-radius:8px; font-weight:bold; font-size:14px; margin-bottom:15px;"></div>
+
+                <textarea id="cierre-notas" placeholder="Motivo de descuadre o notas de cierre..." class="input-glass" rows="2" style="margin-bottom:15px;"></textarea>
+                <button type="submit" class="btn-primary-solid" style="width:100%; background:var(--danger);"><i class="ph-bold ph-lock-key"></i> Cerrar y Archivar Turno</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL HISTORIAL 360 DEL CLIENTE ================= -->
+    <div id="modal-cliente-historial" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>Expediente del Cliente (360°)</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-cliente-historial').style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            <div id="cliente-historial-content"></div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL CUOTAS DE CRÉDITO ================= -->
+    <div id="modal-cuotas-detalle" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>Cronograma de Cuotas</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-cuotas-detalle').style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            <div id="cuotas-detalle-content"></div>
+        </div>
+    </div>
+
+    <!-- ================= MODALES EXISTENTES MEJORADOS ================= -->
+    <div id="modal-escaner" class="modal-bottom-sheet"><div class="sheet-content"><div class="sheet-header"><h3>Escáner de Código</h3><button class="btn-close-sheet" onclick="App.scanner.stop()"><i class="ph-bold ph-x"></i></button></div><div id="reader"></div></div></div>
+    <div id="modal-espera" class="modal-bottom-sheet"><div class="sheet-content"><div class="sheet-header"><h3>Ventas en Espera</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-espera').style.display='none'"><i class="ph-bold ph-x"></i></button></div><div id="lista-espera-ui"></div></div></div>
+    <div id="modal-qr" class="modal-bottom-sheet"><div class="sheet-content" style="text-align: center;"><div class="sheet-header"><h3>Código de Cobro</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-qr').style.display='none'"><i class="ph-bold ph-x"></i></button></div><p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Muestra este código al cliente.</p><img id="qr-img" src="" alt="QR" style="width: 250px; height: 250px; border-radius: 12px; border: 2px solid var(--primary); padding: 10px; background: #fff;"></div></div>
+
+    <!-- MODAL ETIQUETAS / CÓDIGO DE BARRAS -->
+    <div id="modal-etiquetas" class="modal-bottom-sheet">
+        <div class="sheet-content" style="text-align:center;">
+            <div class="sheet-header"><h3>Imprimir Código de Barras</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-etiquetas').style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            <h4 id="eti-prod-name" style="color:var(--primary); margin-bottom:20px;">Producto</h4>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <div style="flex:1;"><label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Cantidad Copias</label><input type="number" id="eti-qty" value="1" min="1" class="input-glass" style="margin:0;"></div>
+                <div style="flex:1;"><label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Tamaño</label><select id="eti-size" class="input-glass" style="margin:0;"><option value="50x30">50x30 mm (Estándar)</option><option value="40x25">40x25 mm (Pequeño)</option></select></div>
+            </div>
+            <button class="btn-primary-solid" style="width:100%;" onclick="App.etiquetas.imprimir(event)"><i class="ph-bold ph-printer"></i> Imprimir Etiquetas</button>
+        </div>
+    </div>
+
+    <!-- MODAL BITÁCORA / AUDITORÍA -->
+    <div id="modal-bitacora" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>Auditoría de Acciones (Bitácora)</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-bitacora').style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            <div id="lista-bitacora-ui" style="max-height:60vh; overflow-y:auto; border: 1px solid var(--border-color); border-radius:var(--radius-md);"></div>
+        </div>
+    </div>
+
+    <!-- MODAL PRODUCTO / ARTÍCULO / COMBO -->
+    <div id="modal-producto" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3 id="modal-producto-title">Ficha de Artículo</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-producto').style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            <form id="form-producto" onsubmit="App.inv.guardarForm(event)">
+                <input type="hidden" id="prod-id"> 
+                <input type="text" id="codigo" placeholder="SKU / Código de Barras" required class="input-glass">
+                <input type="text" id="nombre" placeholder="Nombre del producto" required class="input-glass">
+                <textarea id="descripcion" placeholder="Descripción detallada para el catálogo..." class="input-glass" rows="2"></textarea>
+                
+                <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <div style="flex:1; display:flex; gap:5px;">
+                        <select id="categoria-select" class="input-glass" style="margin:0; padding-right:5px;"><option value="General">General</option></select>
+                        <button type="button" class="btn-primary-solid" style="padding:0 12px; margin:0; border-radius:8px;" onclick="App.categorias.agregarNueva()"><i class="ph-bold ph-plus"></i></button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom:15px; border:1px solid var(--border-color); padding:10px; border-radius:var(--radius-md); background:rgba(128,128,128,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin:0;">Proveedores Múltiples</label>
+                        <button type="button" class="btn-outline-blue" style="padding:4px 8px; font-size:10px; margin:0;" onclick="App.proveedores.abrirDesdeProducto()"><i class="ph-bold ph-plus"></i> Agregar Nuevo</button>
+                    </div>
+                    <div id="proveedores-checkboxes" style="max-height:80px; overflow-y:auto; font-size:12px;"></div>
+                </div>
+
+                <!-- CHECKBOX DESTACADO CARRUSEL -->
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; background: rgba(255, 215, 0, 0.1); padding: 10px; border-radius: var(--radius-md); border: 1px solid rgba(255, 215, 0, 0.5);">
+                    <input type="checkbox" id="destacado">
+                    <label for="destacado" style="margin:0; font-size:13px; font-weight: bold; color: var(--text-dark);">⭐ Destacar en Carrusel Superior</label>
+                </div>
+
+                <!-- CONFIGURACIÓN DE COMBOS / KITS -->
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; background: rgba(59, 130, 246, 0.1); padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--info);">
+                    <input type="checkbox" id="check-es-combo" onchange="App.combos.toggleUI(this.checked)">
+                    <label for="check-es-combo" style="margin:0; font-size:13px; font-weight:bold; color:var(--info);">📦 Es un Producto Combo / Kit Promocional</label>
+                </div>
+
+                <div id="area-combo-config" style="display:none; background:rgba(128,128,128,0.05); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:15px;">
+                    <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">Componentes que se descontarán al vender este combo:</label>
+                    <div style="display:flex; gap:6px; margin-bottom:10px;">
+                        <select id="combo-prod-select" class="input-glass" style="margin:0; flex:2;"></select>
+                        <input type="number" id="combo-prod-qty" value="1" min="0.1" step="0.1" class="input-glass" style="margin:0; flex:0.8;">
+                        <button type="button" class="btn-primary-solid" style="margin:0; padding:0 12px;" onclick="App.combos.agregarComponente()"><i class="ph-bold ph-plus"></i></button>
+                    </div>
+                    <div id="combo-componentes-lista-ui" style="max-height:100px; overflow-y:auto; font-size:12px;"></div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+                    <input type="checkbox" id="check-variantes" onchange="document.getElementById('area-variantes').style.display = this.checked ? 'block' : 'none'; document.getElementById('area-precios-base').style.display = this.checked ? 'none' : 'block';"> <label for="check-variantes" style="margin:0; font-size:12px;">Producto con Variantes</label>
+                </div>
+
+                <div id="area-precios-base">
+                    <div style="display:flex; gap:10px; margin-bottom:12px;">
+                        <div style="flex:1"><label style="font-size:10px; color:var(--text-muted);">Costo Base ($)</label><input type="number" id="costo" placeholder="0.00" step="0.01" class="input-glass" style="margin:0;" onkeyup="App.inv.calcPrecio()"></div>
+                        <div style="flex:1"><label style="font-size:10px; color:var(--text-muted);">% Ganancia</label><input type="number" id="ganancia" placeholder="30" step="0.1" class="input-glass" style="margin:0;" onkeyup="App.inv.calcPrecio()"></div>
+                    </div>
+                    <div style="margin-bottom:12px;"><label style="font-size:10px; color:var(--primary);">Precio Final de Venta ($)</label><input type="number" id="precio" readonly class="input-glass" style="border-color:var(--primary); font-weight:bold; color:var(--primary); background:rgba(128,128,128,0.1);"></div>
+                    <div style="display:flex; gap:10px; margin-bottom:12px;">
+                        <div style="flex:1"><label style="font-size:10px; color:var(--text-muted);">Stock Total</label><input type="number" id="stock" placeholder="0" class="input-glass" style="margin:0;"></div>
+                        <div style="flex:1"><label style="font-size:10px; color:var(--text-muted);">Stock Mínimo (Alerta)</label><input type="number" id="stock_minimo" value="5" class="input-glass" style="margin:0;"></div>
+                    </div>
+                </div>
+
+                <div id="area-variantes" style="display:none; background: rgba(128,128,128,0.05); padding: 15px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 15px;">
+                    <h4 style="margin:0 0 10px 0; font-size:12px; color:var(--text-muted);">Añadir Variante</h4>
+                    <div style="display:flex; gap:5px; margin-bottom:10px;"><input type="text" id="var-nombre" placeholder="Nombre (Talla M)" class="input-glass" style="margin:0; flex:2; padding:8px;"><input type="number" id="var-stock" placeholder="Cant." class="input-glass" style="margin:0; flex:1; padding:8px;"><input type="number" id="var-precio" placeholder="Precio $" class="input-glass" style="margin:0; flex:1; padding:8px;"><button type="button" class="btn-primary-solid" style="margin:0; width:40px; padding:0;" onclick="App.inv.agregarVariante()"><i class="ph-bold ph-plus"></i></button></div>
+                    <div id="lista-variantes-ui" style="max-height: 100px; overflow-y: auto; font-size: 12px;"></div>
+                </div>
+                
+                <div style="margin-bottom:15px;"><label style="font-size:10px; color:var(--text-muted);">Vencimiento (Opcional)</label><input type="date" id="vencimiento" class="input-glass" style="margin-top:5px;"></div>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;"><input type="checkbox" id="es-peso"> <label for="es-peso" style="margin:0; font-size:12px;">Venta por Peso (Kg/g)</label></div>
+                <div class="upload-zone" onclick="document.getElementById('input-file-prod').click()" style="margin-bottom:15px; padding:10px;"><i class="ph-fill ph-image" style="font-size:24px; color:var(--primary);"></i><p style="font-size:11px; margin-top:5px; font-weight:700;">Subir Foto del Producto</p><img id="preview-img-prod" src="#" style="max-height:80px; border-radius:8px; margin-top:10px; display:none;"><input type="file" id="input-file-prod" style="display:none" accept="image/*" onchange="App.ui.previewImage(this, 'preview-img-prod')"></div>
+                <button type="submit" class="btn-primary-solid" style="width:100%;"><i class="ph-bold ph-floppy-disk"></i> Guardar Producto</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL CRM - CLIENTES EXTENDIDO -->
+    <div id="modal-clientes" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>CRM - Registro de Clientes</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-clientes').style.display='none'; document.getElementById('modal-clientes').style.zIndex='4000';"><i class="ph-bold ph-x"></i></button></div>
+            <form onsubmit="App.crm.guardarForm(event)">
+                <input type="text" id="cli-nombre" placeholder="Nombre o Razón Social" required class="input-glass">
+                <div style="display:flex; gap:10px; margin-bottom:12px;"><select id="cli-tipo" class="input-glass" style="width:80px; margin:0;"><option>V-</option><option>J-</option><option>E-</option></select><input type="text" id="cli-cedula" placeholder="Cédula / RIF" required class="input-glass" style="margin:0; flex:1;"></div>
+                <input type="text" id="cli-telefono" placeholder="WhatsApp (Ej: 0414...)" required class="input-glass">
+                <input type="text" id="cli-instagram" placeholder="Usuario Instagram / Red Social (@usuario)" class="input-glass">
+                <input type="text" id="cli-direccion" placeholder="Dirección física" class="input-glass">
+                <input type="text" id="cli-referencia" placeholder="Punto de referencia para Delivery" class="input-glass">
+                <textarea id="cli-notas" placeholder="Notas y Preferencias (Alergias, horarios de entrega, etc.)..." class="input-glass" rows="2"></textarea>
+                <div class="upload-zone" onclick="document.getElementById('cli-file').click()" style="margin-bottom:15px; padding:10px;"><p style="font-size:11px; margin:0; font-weight:700;">Foto de Perfil (Opcional)</p><img id="cli-preview-img" src="#" style="max-height:60px; border-radius:50%; margin-top:10px; display:none;"><input type="file" id="cli-file" style="display:none" accept="image/*" onchange="App.ui.previewImage(this, 'cli-preview-img')"></div>
+                <button type="submit" class="btn-primary-solid" style="width:100%;">Registrar Cliente</button>
+            </form>
+            <div id="lista-clientes-ui" style="margin-top:20px; max-height:200px; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <div id="modal-proveedores" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>Proveedores</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-proveedores').style.display='none'; document.getElementById('modal-proveedores').style.zIndex='4000';"><i class="ph-bold ph-x"></i></button></div>
+            <form onsubmit="App.proveedores.guardarForm(event)" style="margin-bottom: 20px;">
+                <input type="text" id="prov-empresa" placeholder="Nombre de la Empresa" required class="input-glass">
+                <input type="text" id="prov-nombre" placeholder="Nombre del Vendedor" required class="input-glass">
+                <input type="text" id="prov-telefono" placeholder="WhatsApp" required class="input-glass">
+                <button type="submit" class="btn-primary-solid" style="width:100%;">Registrar Proveedor</button>
+            </form>
+            <button class="btn-outline-blue" style="width:100%; border-color:var(--warning); color:var(--warning);" onclick="App.proveedores.generarOrden()"><i class="ph-bold ph-file-pdf"></i> Generar Orden PDF</button>
+            <div id="lista-proveedores-ui" style="margin-top:20px; max-height:150px; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <div id="modal-usuarios" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>Gestión de Personal</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-usuarios').style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            <div style="display:flex; gap:10px; margin-bottom:15px;"><button type="button" class="btn-outline-blue" style="width:100%; padding:8px;" onclick="document.getElementById('user-id').value=''; document.getElementById('form-usuarios').reset(); document.getElementById('user-preview-img').style.display='none';"><i class="ph-bold ph-plus"></i> Nuevo Formulario</button></div>
+            <form id="form-usuarios" onsubmit="App.usuarios.guardarForm(event)">
+                <input type="hidden" id="user-id">
+                <input type="text" id="user-name" placeholder="Usuario Login" required class="input-glass">
+                <input type="password" id="user-pin" placeholder="PIN Secreto" class="input-glass">
+                <select id="user-role" class="input-glass"><option value="cajero">Cajero (Solo Ventas)</option><option value="supervisor">Supervisor (Ventas y Ajustes)</option><option value="admin">Administrador (Métricas y Personal)</option><option value="superadmin">Dueño / Super Admin (Total)</option></select>
+                <div class="upload-zone" onclick="document.getElementById('user-file').click()" style="margin-bottom:15px; padding:10px;"><p style="font-size:11px; margin:0; font-weight:700;">Foto de Perfil</p><img id="user-preview-img" src="#" style="max-height:60px; border-radius:50%; margin-top:10px; display:none;"><input type="file" id="user-file" style="display:none" accept="image/*" onchange="App.ui.previewImage(this, 'user-preview-img')"></div>
+                <button type="submit" class="btn-primary-solid" style="width:100%;"><i class="ph-bold ph-floppy-disk"></i> Guardar Empleado</button>
+            </form>
+            <div id="lista-usuarios-ui" style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:15px;"></div>
+        </div>
+    </div>
+
+    <!-- MODAL DE AJUSTES (MARCA BLANCA) -->
+    <div id="modal-ajustes" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>Configuración (Dueño)</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-ajustes').style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            <form onsubmit="App.config.guardar(event)">
+                
+                <label style="font-size:12px; color:var(--text-muted); font-weight:bold;">Nombre del Sistema / Empresa</label>
+                <input type="text" id="config-nombre-sistema" class="input-glass" style="margin-bottom:15px;">
+                
+                <label style="font-size:12px; color:var(--text-muted); font-weight:bold;">Tasa BCV del Día</label>
+                <input type="number" step="0.01" id="config-tasa" class="input-glass" style="margin-bottom:15px;">
+                
+                <label style="font-size:12px; color:var(--text-muted); font-weight:bold;">Color Principal de la Marca</label>
+                <input type="color" id="config-color" class="input-glass" style="height: 40px; padding: 2px; margin-bottom:15px;">
+                
+                <label style="font-size:12px; color:var(--text-muted); font-weight:bold;">Tipografía Predeterminada</label>
+                <select id="config-fuente" class="input-glass" style="margin-bottom:15px; font-weight:bold;">
+                    <option value="'Plus Jakarta Sans'">Plus Jakarta Sans (Por Defecto)</option>
+                    <option value="'Inter'">Inter (Elegante y Limpia)</option>
+                    <option value="'Outfit'">Outfit (Moderna y Redondeada)</option>
+                    <option value="'Space Grotesk'">Space Grotesk (Estilo Tecnológico)</option>
+                </select>
+
+                <label style="font-size:12px; color:var(--text-muted); font-weight:bold;">O Subir Fuente Personalizada (TTF, OTF, WOFF)</label>
+                <input type="file" id="config-fuente-file" accept=".ttf,.otf,.woff,.woff2" class="input-glass" style="margin-bottom:15px;">
+
+                <hr style="border-color:var(--border-color); margin-bottom:15px;">
+                <h4 style="margin:0 0 10px 0; font-size:14px; color:var(--text-dark);"><i class="ph-bold ph-camera"></i> Estudio Fotográfico de Productos</h4>
+                
+                <label style="font-size:12px; color:var(--text-muted); font-weight:bold;">API Key de Remove.bg (Para Recorte Automático con IA)</label>
+                <input type="text" id="config-removebg-key" class="input-glass" placeholder="Ej: k8yLp..." style="margin-bottom:15px;">
+
+                <label style="font-size:12px; color:var(--text-muted); font-weight:bold;">Plantilla / Fondo Base (Navidad, Promos, etc)</label>
+                <img id="config-plantilla-preview" src="#" style="max-height:100px; border-radius:8px; margin-bottom:10px; display:none; border: 1px dashed var(--primary);">
+                <input type="file" id="config-plantilla" accept="image/*" class="input-glass" style="margin-bottom:15px;" onchange="App.ui.previewImage(this, 'config-plantilla-preview')">
+
+                <label style="font-size:12px; color:var(--text-muted); font-weight:bold;">Logo de Empresa (Encabezado y Favicon)</label>
+                <img id="config-logo-preview" src="#" style="max-height:80px; border-radius:8px; margin-bottom:10px; display:none;">
+                <input type="file" id="config-logo" accept="image/*" class="input-glass" style="margin-bottom:15px;" onchange="App.ui.previewImage(this, 'config-logo-preview')">
+                
+                <button type="submit" class="btn-primary-solid" style="width:100%; margin-bottom:15px;">Guardar Configuración</button>
+            </form>
+            <hr style="border-color:var(--border-color); margin-bottom:15px;">
+            <button onclick="App.db.backup()" class="btn-outline-blue" style="width:100%; margin-bottom:10px;"><i class="ph-bold ph-download"></i> Descargar Copia de Seguridad ZIP</button>
+            <label for="upload-backup" class="btn-outline-blue" style="width:100%; justify-content:center; display:flex; cursor:pointer; margin:0;"><i class="ph-bold ph-upload"></i> Restaurar Copia ZIP</label>
+            <input type="file" id="upload-backup" style="display:none;" accept=".zip" onchange="App.db.restaurar(event)">
+        </div>
+    </div>
+
+    <!-- MODAL ARQUEO RÁPIDO CIEGO -->
+    <div id="modal-arqueo" class="modal-bottom-sheet"><div class="sheet-content"><div class="sheet-header"><h3>Cierre Ciego</h3><button class="btn-close-sheet" onclick="document.getElementById('modal-arqueo').style.display='none'"><i class="ph-bold ph-x"></i></button></div><div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;"><div class="input-glass" style="display:flex; justify-content:space-between; align-items:center; padding:8px 15px;"><label style="color:var(--success); font-weight:bold; margin:0;">$100</label><input type="number" id="bill-100" min="0" placeholder="0" onkeyup="App.caja.calcArqueo()" style="width:50px; background:transparent; border:none; color:var(--text-dark); text-align:right; font-weight:bold; outline:none;"></div><div class="input-glass" style="display:flex; justify-content:space-between; align-items:center; padding:8px 15px;"><label style="color:var(--success); font-weight:bold; margin:0;">$50</label><input type="number" id="bill-50" min="0" placeholder="0" onkeyup="App.caja.calcArqueo()" style="width:50px; background:transparent; border:none; color:var(--text-dark); text-align:right; font-weight:bold; outline:none;"></div><div class="input-glass" style="display:flex; justify-content:space-between; align-items:center; padding:8px 15px;"><label style="color:var(--success); font-weight:bold; margin:0;">$20</label><input type="number" id="bill-20" min="0" placeholder="0" onkeyup="App.caja.calcArqueo()" style="width:50px; background:transparent; border:none; color:var(--text-dark); text-align:right; font-weight:bold; outline:none;"></div><div class="input-glass" style="display:flex; justify-content:space-between; align-items:center; padding:8px 15px;"><label style="color:var(--success); font-weight:bold; margin:0;">$10</label><input type="number" id="bill-10" min="0" placeholder="0" onkeyup="App.caja.calcArqueo()" style="width:50px; background:transparent; border:none; color:var(--text-dark); text-align:right; font-weight:bold; outline:none;"></div><div class="input-glass" style="display:flex; justify-content:space-between; align-items:center; padding:8px 15px;"><label style="color:var(--success); font-weight:bold; margin:0;">$5</label><input type="number" id="bill-5" min="0" placeholder="0" onkeyup="App.caja.calcArqueo()" style="width:50px; background:transparent; border:none; color:var(--text-dark); text-align:right; font-weight:bold; outline:none;"></div><div class="input-glass" style="display:flex; justify-content:space-between; align-items:center; padding:8px 15px;"><label style="color:var(--success); font-weight:bold; margin:0;">$1</label><input type="number" id="bill-1" min="0" placeholder="0" onkeyup="App.caja.calcArqueo()" style="width:50px; background:transparent; border:none; color:var(--text-dark); text-align:right; font-weight:bold; outline:none;"></div></div><div style="font-size:28px; font-weight:800; color:var(--primary); text-align:center; margin-bottom:15px;">Total: $<span id="total-contado-ui">0.00</span></div><input type="hidden" id="arq-real"><button class="btn-primary-solid" style="background:var(--danger); width:100%;" onclick="App.caja.ejecutarCierre()">Cerrar Turno</button></div></div>
+    
+    <div id="modal-gasto" class="modal-bottom-sheet"><div class="sheet-content"><div class="sheet-header"><h3>Egresar Dinero</h3><button class="btn-close-sheet" onclick="this.parentElement.parentElement.parentElement.style.display='none'"><i class="ph-bold ph-x"></i></button></div><form onsubmit="App.caja.guardarGasto(event)"><input type="number" step="0.01" id="gasto-monto" placeholder="Monto $" required class="input-glass"><select id="gasto-cat" class="input-glass"><option value="Mercancía">Mercancía</option><option value="Servicios">Servicios</option><option value="Otros">Otros</option></select><input type="text" id="gasto-desc" placeholder="Motivo" required class="input-glass"><button type="submit" class="btn-primary-solid" style="width:100%; background:var(--danger);">Descontar de Caja</button></form></div></div>
+    <div id="modal-devolucion" class="modal-bottom-sheet"><div class="sheet-content"><div class="sheet-header"><h3>Procesar Devolución</h3><button class="btn-close-sheet" onclick="this.parentElement.parentElement.parentElement.style.display='none'"><i class="ph-bold ph-x"></i></button></div><form onsubmit="App.caja.procesarDevolucion(event)"><input type="text" id="dev-folio" placeholder="N° de Folio de Venta Completo" required class="input-glass"><input type="number" step="0.01" id="dev-monto" placeholder="Monto Exacto a Reintegrar $" required class="input-glass"><div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;"><input type="checkbox" id="dev-stock" checked> <label for="dev-stock" style="margin:0; font-size:12px;">Regresar artículos devueltos al Stock del Inventario</label></div><button type="submit" class="btn-primary-solid" style="width:100%; background:var(--danger);"><i class="ph-bold ph-arrow-u-up-left"></i> Reintegrar Dinero</button></form></div></div>
+    <div id="modal-creditos" class="modal-bottom-sheet"><div class="sheet-content"><div class="sheet-header"><h3>Fiados & Cuotas Activas</h3><button class="btn-close-sheet" onclick="this.parentElement.parentElement.parentElement.style.display='none'"><i class="ph-bold ph-x"></i></button></div><div id="lista-creditos-ui" class="empty-state">No hay deudas activas</div></div></div>
+    <div id="modal-caja" class="modal-bottom-sheet"><div class="sheet-content"><div class="sheet-header"><h3>Historial y Exportación</h3><button class="btn-close-sheet" onclick="this.parentElement.parentElement.parentElement.style.display='none'"><i class="ph-bold ph-x"></i></button></div><div style="display:flex; gap:10px; margin-bottom:15px;"><div style="flex:1; background:var(--card-bg); padding:15px; border-radius:12px; text-align:center; border:1px solid var(--border-color);"><h4 style="margin:0; font-size:12px; color:var(--text-muted);">Ingresos</h4><div style="color:var(--success); font-size:20px; font-weight:800;" id="modal-caja-ingresos">$0.00</div></div><div style="flex:1; background:var(--card-bg); padding:15px; border-radius:12px; text-align:center; border:1px solid var(--border-color);"><h4 style="margin:0; font-size:12px; color:var(--text-muted);">Gastos</h4><div style="color:var(--danger); font-size:20px; font-weight:800;" id="modal-caja-gastos">-$0.00</div></div></div><button class="btn-outline-blue" style="width:100%; border-color:var(--success); color:var(--success);" onclick="App.caja.exportarVentasCSV()"><i class="ph-bold ph-file-csv"></i> Descargar Excel Ventas</button></div></div>
+    
+    <!-- MODAL MÉTRICAS Y MARGEN BRUTO REAL -->
+    <div id="modal-estadisticas" class="modal-bottom-sheet">
+        <div class="sheet-content">
+            <div class="sheet-header"><h3>Métricas & Margen Real</h3><button class="btn-close-sheet" onclick="this.parentElement.parentElement.parentElement.style.display='none'"><i class="ph-bold ph-x"></i></button></div>
+            
+            <div id="utilidad-resumen-cards" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;"></div>
+            
+            <canvas id="ventasChartModal" height="130" style="background:var(--card-bg); border-radius:12px; padding:10px; width:100%; margin-bottom:15px;"></canvas>
+
+            <h4 style="margin:0 0 10px 0; font-size:13px; color:var(--text-dark);">Margen de Ganancia por Categoría</h4>
+            <div id="utilidad-categorias-lista" style="max-height:150px; overflow-y:auto; font-size:12px;"></div>
+        </div>
+    </div>
+
+    <div id="modal-marketing" class="modal-bottom-sheet"><div class="sheet-content"><div class="sheet-header"><h3>Difusión WA</h3><button class="btn-close-sheet" onclick="this.parentElement.parentElement.parentElement.style.display='none'"><i class="ph-bold ph-x"></i></button></div><textarea id="mkt-mensaje" rows="4" class="input-glass" placeholder="Escribe tu mensaje publicitario..."></textarea><button class="btn-primary-solid" style="width:100%; background:var(--success);" onclick="App.crm.prepararMarketing()"><i class="ph-bold ph-whatsapp-logo"></i> Generar Lista de Envío</button><div id="lista-mkt-ui" style="margin-top:15px; max-height:200px; overflow-y:auto;"></div></div></div>
+    <div id="modal-alertas" class="modal-bottom-sheet"><div class="sheet-content"><div class="sheet-header"><h3>Alertas (Stock y Caducidad)</h3><button class="btn-close-sheet" onclick="this.parentElement.parentElement.parentElement.style.display='none'"><i class="ph-bold ph-x"></i></button></div><div id="lista-caducidad" class="empty-state">Todo en orden</div></div></div>
+    <div id="orden-compra-area" style="display:none; padding:20px; background:#fff; width:700px; color:#000;"><h2 style="text-align:center;">ORDEN DE COMPRA SUGERIDA</h2><div id="orden-compra-area-content"></div></div>
+
+    <!-- =========================================================================
+         ASISTENTE VIRTUAL FLOTANTE & MENÚ DE ACCIONES
+         ========================================================================= -->
+    <div id="assistant-fab" class="assistant-fab admin-only" onclick="App.tutor.toggleMenu()" title="Asistente Virtual JCLIP & Tutor">
+        <div class="assistant-fab-pulse"></div>
+        <span class="assistant-badge-bubble">Tutor</span>
+        <i class="ph-fill ph-robot" style="font-size: 28px;"></i>
+    </div>
+
+    <div id="assistant-menu" class="assistant-menu">
+        <div class="assistant-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <div class="academia-icon" style="width:34px; height:34px; font-size:18px;"><i class="ph-fill ph-robot"></i></div>
+                <div>
+                    <h4 style="margin:0; font-size:14px; font-weight:800; color:var(--text-dark);">Asistente JCLIP</h4>
+                    <span style="font-size:10px; color:var(--success); font-weight:700;">● Tutor Activo</span>
+                </div>
+            </div>
+            <button class="btn-close-sheet" onclick="App.tutor.toggleMenu(false)" style="padding:4px;"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <button class="assistant-btn-action" onclick="App.tutor.abrirAcademia(); App.tutor.toggleMenu(false);">
+            <i class="ph-bold ph-graduation-cap" style="color:var(--primary);"></i>
+            <div>
+                <div>Centro de Tutorías</div>
+                <div style="font-size:10px; color:var(--text-muted); font-weight:500;">8 Módulos de Aprendizaje</div>
+            </div>
+        </button>
+        <button class="assistant-btn-action" onclick="App.tutor.iniciarTourCompleto(); App.tutor.toggleMenu(false);">
+            <i class="ph-bold ph-compass" style="color:var(--info);"></i>
+            <div>
+                <div>Tour General del Sistema</div>
+                <div style="font-size:10px; color:var(--text-muted); font-weight:500;">Recorrido visual guiado</div>
+            </div>
+        </button>
+        <button class="assistant-btn-action" onclick="App.tutor.abrirFAQ(); App.tutor.toggleMenu(false);">
+            <i class="ph-bold ph-question" style="color:var(--warning);"></i>
+            <div>
+                <div>Preguntas Frecuentes</div>
+                <div style="font-size:10px; color:var(--text-muted); font-weight:500;">Respuestas directas con guía</div>
+            </div>
+        </button>
+        <button class="assistant-btn-action" onclick="App.tutor.toggleVoz();">
+            <i id="btn-voz-icon" class="ph-bold ph-speaker-high" style="color:var(--success);"></i>
+            <div>
+                <div>Narrador por Voz: <span id="btn-voz-status" style="color:var(--success);">ACTIVO</span></div>
+                <div style="font-size:10px; color:var(--text-muted); font-weight:500;">Explicación hablada nativa</div>
+            </div>
+        </button>
+    </div>
+
+    <!-- =========================================================================
+         ELEMENTOS DEL TOUR VISUAL INTERACTIVO (SPOTLIGHT & TARJETA DE GUÍA)
+         ========================================================================= -->
+    <div id="tour-overlay" class="tour-overlay" onclick="App.tutor.finalizarTour(true)"></div>
+    <div id="tour-spotlight-box" class="tour-spotlight-box" style="display:none;"></div>
+    <div id="tour-card" class="tour-card" style="display:none;">
+        <div class="tour-card-header">
+            <span id="tour-step-pill" class="tour-step-pill"><i class="ph-bold ph-sparkle"></i> Paso 1 de 5</span>
+            <div id="tour-audio-wave" class="audio-wave-container" style="display:none;">
+                <div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div>
+            </div>
+        </div>
+        <h3 id="tour-card-title" class="tour-card-title">Título del Paso</h3>
+        <p id="tour-card-desc" class="tour-card-desc">Descripción explicativa del paso...</p>
+        <div class="tour-card-footer">
+            <button class="btn-outline-blue" id="tour-btn-prev" onclick="App.tutor.pasoAnterior()" style="padding:6px 12px; font-size:12px;"><i class="ph-bold ph-arrow-left"></i> Anterior</button>
+            <div style="display:flex; gap:6px;">
+                <button class="btn-outline-blue" onclick="App.tutor.repetirVozPasoActual()" title="Repetir explicación por voz" style="padding:6px 10px; font-size:12px;"><i class="ph-bold ph-arrows-clockwise"></i></button>
+                <button class="btn-primary-solid" id="tour-btn-next" onclick="App.tutor.pasoSiguiente()" style="padding:6px 14px; font-size:12px;">Siguiente <i class="ph-bold ph-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL: CENTRO DE TUTORÍAS (ACADEMIA JCLIP)
+         ========================================================================= -->
+    <div id="modal-academia" class="modal-bottom-sheet">
+        <div class="sheet-content" style="max-width: 900px;">
+            <div class="sheet-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="academia-icon"><i class="ph-fill ph-graduation-cap"></i></div>
+                    <div>
+                        <h3 style="margin:0; font-size:18px;">Academia JCLIP - Centro de Tutorías</h3>
+                        <p style="margin:0; font-size:12px; color:var(--text-muted);">Capacitación interactiva paso a paso por módulos</p>
+                    </div>
+                </div>
+                <button class="btn-close-sheet" onclick="document.getElementById('modal-academia').style.display='none'"><i class="ph-bold ph-x"></i></button>
+            </div>
+
+            <!-- Resumen de Progreso General -->
+            <div style="background:var(--card-bg); border:1px solid var(--border-color); border-radius:14px; padding:15px; margin-bottom:15px; display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:13px; font-weight:800; color:var(--text-dark);"><i class="ph-bold ph-trophy" style="color:var(--warning);"></i> Progreso de Capacitación:</span>
+                    <span id="academia-progreso-texto" style="font-size:13px; font-weight:900; color:var(--primary);">0 de 8 Módulos (0%)</span>
+                </div>
+                <div class="academia-progreso-bar">
+                    <div id="academia-progreso-fill" class="academia-progreso-fill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Grilla de Módulos de Aprendizaje -->
+            <div id="academia-modulos-grid" class="academia-grid">
+                <!-- Se llena dinámicamente desde App.tutor.renderAcademia() -->
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL: PREGUNTAS FRECUENTES (FAQ & ATAJOS GUIADOS)
+         ========================================================================= -->
+    <div id="modal-faq" class="modal-bottom-sheet">
+        <div class="sheet-content" style="max-width: 600px;">
+            <div class="sheet-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="academia-icon"><i class="ph-fill ph-question"></i></div>
+                    <div>
+                        <h3 style="margin:0; font-size:18px;">Preguntas Frecuentes & Guías</h3>
+                        <p style="margin:0; font-size:12px; color:var(--text-muted);">Respuestas instantáneas con botón "Llévame allí"</p>
+                    </div>
+                </div>
+                <button class="btn-close-sheet" onclick="document.getElementById('modal-faq').style.display='none'"><i class="ph-bold ph-x"></i></button>
+            </div>
+
+            <div id="faq-lista-container" class="faq-list">
+                <!-- Se llena dinámicamente desde App.tutor.renderFAQ() -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

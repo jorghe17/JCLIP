@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+requests
+Pillow
+bcrypt
+PyJWT
+apscheduler
+python-dotenv

@@ -1,0 +1,136 @@
+================================================================================
+                    MANUAL DE USUARIO - SISTEMA JCLIP ERP & POS
+                       GUÍA DE INICIO RÁPIDO Y OPERACIÓN
+================================================================================
+
+¡Bienvenido a JCLIP PRO ULTRA!
+Este manual describe los pasos necesarios para instalar dependencias, iniciar el 
+servidor y operar el sistema en tu computadora o red local.
+
+--------------------------------------------------------------------------------
+1. REQUISITOS PREVIOS
+--------------------------------------------------------------------------------
+- Tener instalado Python 3.10 o superior (asegúrate de marcar la casilla 
+  "Add Python to PATH" durante la instalación).
+- Navegador web moderno (Google Chrome, Microsoft Edge, Brave o Firefox).
+
+--------------------------------------------------------------------------------
+2. INSTALACIÓN DE DEPENDENCIAS (Solo la primera vez)
+--------------------------------------------------------------------------------
+Abre una terminal (PowerShell o CMD) en la carpeta del proyecto y ejecuta:
+
+    pip install -r requirements.txt
+
+Librerías principales que se instalarán:
+- FastAPI & Uvicorn (Servidor web de alto rendimiento)
+- Bcrypt & PyJWT (Seguridad y cifrado bancario de contraseñas)
+- Pillow (Estudio fotográfico y procesamiento de imágenes)
+- APScheduler (Reloj automático para sincronizar tasa oficial del BCV)
+- Requests & Python-Dotenv (Consultas y variables de entorno)
+
+--------------------------------------------------------------------------------
+3. CÓMO INICIAR EL SISTEMA
+--------------------------------------------------------------------------------
+
+MÉTODO A (El más fácil - Doble Clic en Windows):
+- Haz doble clic sobre el archivo: INICIAR_SISTEMA.bat
+
+MÉTODO B (Desde la Terminal / PowerShell):
+- Abre la terminal en la carpeta del sistema y escribe:
+
+    python main.py
+
+MÉTODO C (Con Uvicorn directo):
+
+    uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+Una vez iniciado, verás un mensaje indicando que el servidor está corriendo en:
+http://0.0.0.0:8000
+
+--------------------------------------------------------------------------------
+4. DIRECCIONES DE ACCESO (EN TU NAVEGADOR)
+--------------------------------------------------------------------------------
+Abre tu navegador e ingresa a:
+
+- Panel Principal (POS, Inventario, Caja y Reportes):
+  http://localhost:8000
+
+- Pantalla Secundaria para el Cliente (2da Pantalla / Monitor de mostrador):
+  http://localhost:8000/cliente
+
+- Documentación Interactiva de la API:
+  http://localhost:8000/docs
+
+- Acceso desde otros dispositivos en la misma red Wi-Fi (Teléfonos, Tablets):
+  http://[TU_IP_LOCAL]:8000
+  (Ejemplo: http://192.168.1.15:8000)
+
+--------------------------------------------------------------------------------
+5. CREDENCIALES DE ACCESO PREDETERMINADAS
+--------------------------------------------------------------------------------
+- Usuario: Admin Principal
+- PIN de Acceso: 1234
+- Rol: Superadmin (Acceso total a configuración y base de datos)
+
+* Nota: Puedes crear nuevos cajeros, supervisores y cambiar tus claves desde el
+  módulo de Usuarios en el Panel Principal.
+
+--------------------------------------------------------------------------------
+6. GUÍA DE OPERACIÓN DIARIA (FLUJO RECOMENDADO)
+--------------------------------------------------------------------------------
+
+PASO 1: Apertura de Turno de Caja
+- Al iniciar el día, presiona "Abrir Turno".
+- Ingresa el fondo inicial en Dólares ($) y Bolívares (Bs) disponible para dar vuelto.
+
+PASO 2: Actualización de la Tasa BCV
+- La tasa oficial del BCV se actualiza automáticamente todos los días a las 8:00 AM.
+- Si deseas forzar una actualización manual en cualquier momento, haz clic en el
+  botón circular de actualización junto a la tasa en el encabezado superior.
+
+PASO 3: Facturación y Punto de Venta (POS)
+- Presiona la tecla F2 o el botón "Facturación" en la barra inferior.
+- Escanea los productos con tu lector de código de barras USB/Bluetooth o búscalos
+  por nombre o categoría.
+- Selecciona el método de pago: Efectivo en Dólares, Pago Móvil en Bolívares,
+  Punto de Venta, Zelle, Biopago, Crédito o Pago Mixto multidivisa.
+- Al cobrar, el sistema descuenta el stock y permite enviar el recibo digital
+  al WhatsApp del cliente.
+
+PASO 4: Asistente Virtual & Academia de Tutorías
+- Si tienes dudas o vas a entrenar a un nuevo empleado, presiona el botón flotante
+  del Robot en la esquina inferior derecha o el botón "Academia" en la barra superior.
+- Dispones de 8 módulos con guía interactiva en pantalla y narrador por voz en español.
+
+PASO 5: Cierre de Jornada y Arqueo Ciego
+- Al finalizar el día, presiona "Cerrar Turno / Arqueo".
+- Cuenta los billetes físicos e introduce las cantidades en la calculadora ($100, $50,
+  $20, $10, $5, $1).
+- El sistema calculará automáticamente si hubo sobrante o faltante y guardará la
+  auditoría en la Bitácora.
+
+PASO 6: Copia de Seguridad (Backup)
+- Ve a Configuración (icono de engranaje) y haz clic en "Descargar Copia de Seguridad ZIP".
+- Esto descarga en un solo archivo comprimido toda tu base de datos SQLite y las
+  fotos de tus productos.
+
+--------------------------------------------------------------------------------
+7. RESOLUCIÓN DE PROBLEMAS FRECUENTES
+--------------------------------------------------------------------------------
+
+• Problema: "El puerto 8000 ya está en uso".
+  Solución: Inicia el sistema en otro puerto ejecutando:
+  python -m uvicorn main:app --port 8080 --reload
+  Y luego abre: http://localhost:8080
+
+• Problema: "No se escucha la voz del Asistente Virtual".
+  Solución: Asegúrate de que el narrador no esté en modo SILENCIADO (toca el botón
+  del asistente y verifica el botón de voz) y que el volumen de tu equipo esté activo.
+
+• Problema: Olvidaste la contraseña del Superadmin.
+  Solución: La base de datos es local (jclip_v22.db). Si necesitas restablecer el
+  PIN por defecto, puedes hacerlo de forma segura desde la consola de Python.
+
+================================================================================
+                    JCLIP PRO ULTRA - SOPORTE Y OPERACIÓN
+================================================================================
